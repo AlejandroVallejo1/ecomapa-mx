@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { samplePollutantCompanies } from "@/lib/sample-data";
+import { fetchAllCKAN, CKAN_RESOURCES } from "@/lib/data-sources";
+import { withFallback } from "@/lib/api-helpers";
+import { transformCKANEmissions } from "@/lib/transformers";
 import type { PollutantCompany } from "@/types";
 
-interface ApiResponse<T> {
-  results: T[];
-  meta: {
-    source: string;
-    fetchedAt: string;
-    totalResults: number;
-    fallback: boolean;
-  };
+async function fetchLiveEmissions(): Promise<PollutantCompany[]> {
+  const records = await fetchAllCKAN(CKAN_RESOURCES.emissionsInventory, 5000);
+  return transformCKANEmissions(records);
 }
 
 export async function GET(request: NextRequest) {
@@ -17,29 +15,25 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get("state");
   const sector = searchParams.get("sector");
 
-  let results: PollutantCompany[] = samplePollutantCompanies;
+  const response = await withFallback(
+    fetchLiveEmissions,
+    samplePollutantCompanies,
+    "datos.gob.mx"
+  );
 
   if (state) {
-    results = results.filter(
+    response.results = response.results.filter(
       (c) => c.state.toLowerCase() === state.toLowerCase()
     );
   }
 
   if (sector) {
-    results = results.filter(
+    response.results = response.results.filter(
       (c) => c.sector.toLowerCase() === sector.toLowerCase()
     );
   }
 
-  const response: ApiResponse<PollutantCompany> = {
-    results,
-    meta: {
-      source: "sample",
-      fetchedAt: new Date().toISOString(),
-      totalResults: results.length,
-      fallback: true,
-    },
-  };
+  response.meta.totalResults = response.results.length;
 
   return NextResponse.json(response, {
     headers: {

@@ -136,32 +136,78 @@ export async function fetchLiveAirQuality(): Promise<AirQualityStation[]> {
   return mergeAirQualitySources(openaq, aqicn);
 }
 
-// ── datos.gob.mx ──────────────────────────────────────────────────────
+// ── datos.gob.mx CKAN API ─────────────────────────────────────────────
 
-/** Generic datos.gob.mx CKAN fetch */
-export async function fetchDatosGob(query: string, limit = 50) {
-  const res = await fetch(
-    `${DATOS_GOB_BASE}/${query}?pageSize=${limit}`,
-    { next: { revalidate: 86400 } } // Cache 24 hours
-  );
+const CKAN_BASE = "https://www.datos.gob.mx/api/3/action";
 
-  if (!res.ok) throw new Error(`datos.gob.mx error: ${res.status}`);
-  return res.json();
+// CKAN resource IDs for environmental datasets
+export const CKAN_RESOURCES = {
+  /** CONAGUA hydrometric stations — 1,189 records with lat/lng */
+  hydrometricStations: "3cfc549d-1aa4-4ee0-b4d4-82b21a19136f",
+  /** CONAGUA dams — 210 records with lat/lng */
+  dams: "35e8d001-6195-45c7-9a1c-58a8594fb3a1",
+  /** SEMARNAT contaminated sites — 1,142 records with lat/lng */
+  contaminatedSites: "3279942f-a39e-4556-80ab-7d0b8813b2e5",
+  /** SEMARNAT remediated sites — 1,051 records with lat/lng */
+  remediatedSites: "5194cd4a-35df-448f-ac83-69298fbc5b85",
+  /** Emissions inventory by municipality — 10,521 records */
+  emissionsInventory: "70dfeb69-065b-4ed4-8922-505602666250",
+  /** PROFEPA industrial inspections by municipality — 1,224 records */
+  profepaInspections: "1f32b1ed-922f-46f4-aa83-32c79132bcb4",
+  /** PROFEPA pollution sources by municipality — 2,111 records */
+  profepaSources: "ae955ad7-f85c-4b65-8dd2-5c9fabc626ed",
+  /** PROFEPA environmental emergencies by municipality — 1,302 records */
+  profepaEmergencies: "e811cd95-c5d5-423d-a96c-4efb843a9735",
+} as const;
+
+/**
+ * Fetch records from the datos.gob.mx CKAN datastore API.
+ * Supports pagination via limit/offset.
+ */
+export async function fetchCKAN(
+  resourceId: string,
+  limit = 1000,
+  offset = 0
+): Promise<{ records: Record<string, unknown>[]; total: number }> {
+  const url = `${CKAN_BASE}/datastore_search?resource_id=${resourceId}&limit=${limit}&offset=${offset}`;
+
+  const res = await fetchWithTimeout(url, {
+    timeoutMs: 15000,
+    next: { revalidate: 86400 },
+  } as RequestInit & { timeoutMs?: number });
+
+  const json = await res.json();
+
+  if (!json.success || !json.result) {
+    throw new Error("CKAN API returned unsuccessful response");
+  }
+
+  return {
+    records: json.result.records ?? [],
+    total: json.result.total ?? 0,
+  };
 }
 
-/** CONAGUA water quality data */
-export async function fetchWaterQuality() {
-  return fetchDatosGob("conagua.gob.mx-RENAMECA");
-}
+/**
+ * Fetch ALL records from a CKAN resource, paginating automatically.
+ * Caps at maxRecords to prevent runaway fetches.
+ */
+export async function fetchAllCKAN(
+  resourceId: string,
+  maxRecords = 5000
+): Promise<Record<string, unknown>[]> {
+  const pageSize = 1000;
+  const allRecords: Record<string, unknown>[] = [];
+  let offset = 0;
 
-/** RETC - Pollutant companies registry */
-export async function fetchRetcData() {
-  return fetchDatosGob("semarnat.gob.mx-RETC");
-}
+  while (offset < maxRecords) {
+    const { records, total } = await fetchCKAN(resourceId, pageSize, offset);
+    allRecords.push(...records);
+    offset += pageSize;
+    if (records.length < pageSize || allRecords.length >= total) break;
+  }
 
-/** PROFEPA - Environmental complaints */
-export async function fetchComplaintsData() {
-  return fetchDatosGob("profepa.gob.mx-denuncias");
+  return allRecords;
 }
 
 // ── Color / label helpers (used by MapView & Sidebar) ─────────────────

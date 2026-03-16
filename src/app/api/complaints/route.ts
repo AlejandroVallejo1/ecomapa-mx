@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sampleComplaints } from "@/lib/sample-data";
+import { fetchAllCKAN, CKAN_RESOURCES } from "@/lib/data-sources";
+import { withFallback } from "@/lib/api-helpers";
+import {
+  transformCKANInspections,
+  transformCKANEmergencies,
+} from "@/lib/transformers";
 import type { EnvironmentalComplaint } from "@/types";
 
-interface ApiResponse<T> {
-  results: T[];
-  meta: {
-    source: string;
-    fetchedAt: string;
-    totalResults: number;
-    fallback: boolean;
-  };
+async function fetchLiveComplaints(): Promise<EnvironmentalComplaint[]> {
+  const [inspections, emergencies] = await Promise.all([
+    fetchAllCKAN(CKAN_RESOURCES.profepaInspections, 2000),
+    fetchAllCKAN(CKAN_RESOURCES.profepaEmergencies, 2000),
+  ]);
+
+  const inspectionComplaints = transformCKANInspections(inspections);
+  const emergencyComplaints = transformCKANEmergencies(emergencies);
+
+  return [...inspectionComplaints, ...emergencyComplaints];
 }
 
 export async function GET(request: NextRequest) {
@@ -18,35 +26,31 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status");
   const resource = searchParams.get("resource");
 
-  let results: EnvironmentalComplaint[] = sampleComplaints;
+  const response = await withFallback(
+    fetchLiveComplaints,
+    sampleComplaints,
+    "datos.gob.mx"
+  );
 
   if (state) {
-    results = results.filter(
+    response.results = response.results.filter(
       (c) => c.state.toLowerCase() === state.toLowerCase()
     );
   }
 
   if (status) {
-    results = results.filter(
+    response.results = response.results.filter(
       (c) => c.status === status
     );
   }
 
   if (resource) {
-    results = results.filter(
+    response.results = response.results.filter(
       (c) => c.resource === resource
     );
   }
 
-  const response: ApiResponse<EnvironmentalComplaint> = {
-    results,
-    meta: {
-      source: "sample",
-      fetchedAt: new Date().toISOString(),
-      totalResults: results.length,
-      fallback: true,
-    },
-  };
+  response.meta.totalResults = response.results.length;
 
   return NextResponse.json(response, {
     headers: {

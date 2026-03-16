@@ -1,41 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sampleWaterQuality } from "@/lib/sample-data";
+import { fetchAllCKAN, CKAN_RESOURCES } from "@/lib/data-sources";
+import { withFallback } from "@/lib/api-helpers";
+import {
+  transformCKANHydrometricStations,
+  transformCKANDams,
+} from "@/lib/transformers";
 import type { WaterQualityPoint } from "@/types";
 
-interface ApiResponse<T> {
-  results: T[];
-  meta: {
-    source: string;
-    fetchedAt: string;
-    totalResults: number;
-    fallback: boolean;
-  };
+async function fetchLiveWaterData(): Promise<WaterQualityPoint[]> {
+  const [hydroRecords, damRecords] = await Promise.all([
+    fetchAllCKAN(CKAN_RESOURCES.hydrometricStations, 2000),
+    fetchAllCKAN(CKAN_RESOURCES.dams, 500),
+  ]);
+
+  const hydroStations = transformCKANHydrometricStations(hydroRecords);
+  const dams = transformCKANDams(damRecords);
+
+  return [...hydroStations, ...dams];
 }
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const state = searchParams.get("state");
 
-  // CONAGUA API is complex and requires specific credentials.
-  // For now, return sample data. In production, this would fetch
-  // from datos.gob.mx CKAN API for CONAGUA RENAMECA data.
-  let results: WaterQualityPoint[] = sampleWaterQuality;
+  const response = await withFallback(
+    fetchLiveWaterData,
+    sampleWaterQuality,
+    "datos.gob.mx"
+  );
 
   if (state) {
-    results = results.filter(
+    response.results = response.results.filter(
       (w) => w.state.toLowerCase() === state.toLowerCase()
     );
+    response.meta.totalResults = response.results.length;
   }
-
-  const response: ApiResponse<WaterQualityPoint> = {
-    results,
-    meta: {
-      source: "sample",
-      fetchedAt: new Date().toISOString(),
-      totalResults: results.length,
-      fallback: true,
-    },
-  };
 
   return NextResponse.json(response, {
     headers: {
