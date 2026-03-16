@@ -64,13 +64,20 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
       center: [23.6345, -102.5528],
       zoom: 5,
       zoomControl: true,
+      zoomSnap: 0.5,
+      zoomDelta: 0.5,
+      wheelDebounceTime: 80,
+      preferCanvas: true,
     });
 
-    // CARTO Dark Matter - desaturated basemap for data visualization
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    // CARTO Voyager - modern, balanced basemap for data visualization
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       attribution: '&copy; <a href="https://openstreetmap.org">OSM</a> &copy; <a href="https://carto.com">CARTO</a>',
       subdomains: "abcd",
       maxZoom: 20,
+      keepBuffer: 6,
+      updateWhenZooming: false,
+      updateWhenIdle: true,
     }).addTo(mapInstance);
 
     setMap(mapInstance);
