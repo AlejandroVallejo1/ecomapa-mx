@@ -1,21 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { MapLayer } from "@/types";
+import { useEffect, useState, useCallback } from "react";
+import type {
+  MapLayer,
+  AirQualityStation,
+  WaterQualityPoint,
+  RecyclingCenter,
+  PollutantCompany,
+  Landfill,
+  EnvironmentalComplaint,
+} from "@/types";
 import { getAqiColor, getWaterQualityColor } from "@/lib/data-sources";
 import { mapMarkerSvgs } from "@/components/Icons";
-import {
-  sampleAirQuality,
-  sampleWaterQuality,
-  sampleRecyclingCenters,
-  samplePollutantCompanies,
-  sampleLandfills,
-  sampleComplaints,
-} from "@/lib/sample-data";
+
+export interface MapViewHandle {
+  flyTo: (lat: number, lng: number, zoom?: number) => void;
+}
 
 interface MapViewProps {
   activeLayers: MapLayer[];
-  selectedState?: string;
+  airQuality: AirQualityStation[];
+  waterQuality: WaterQualityPoint[];
+  recyclingCenters: RecyclingCenter[];
+  pollutantCompanies: PollutantCompany[];
+  landfills: Landfill[];
+  complaints: EnvironmentalComplaint[];
+  onMapReady?: (handle: MapViewHandle) => void;
 }
 
 // Popup HTML helper - dark glassmorphism style
@@ -47,9 +57,21 @@ function popupDivider() {
   return `<div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0"></div>`;
 }
 
-export default function MapView({ activeLayers, selectedState }: MapViewProps) {
+export default function MapView({
+  activeLayers, airQuality, waterQuality, recyclingCenters, pollutantCompanies, landfills, complaints, onMapReady,
+}: MapViewProps) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [L, setL] = useState<typeof import("leaflet") | null>(null);
+
+  useEffect(() => {
+    if (map && onMapReady) {
+      onMapReady({
+        flyTo: (lat: number, lng: number, zoom = 12) => {
+          map.flyTo([lat, lng], zoom, { duration: 1.2 });
+        },
+      });
+    }
+  }, [map, onMapReady]);
 
   useEffect(() => {
     import("leaflet").then((leaflet) => {
@@ -99,11 +121,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
     // Air Quality - AQICN-style numbered dots
     if (activeLayers.includes("air-quality")) {
-      const data = selectedState
-        ? sampleAirQuality.filter((s) => s.state === selectedState)
-        : sampleAirQuality;
-
-      data.forEach((station) => {
+      airQuality.forEach((station) => {
         const color = getAqiColor(station.aqi);
         const textColor = station.aqi <= 100 ? "#000" : "#fff";
 
@@ -134,11 +152,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
     // Water Quality
     if (activeLayers.includes("water-quality")) {
-      const data = selectedState
-        ? sampleWaterQuality.filter((s) => s.state === selectedState)
-        : sampleWaterQuality;
-
-      data.forEach((point) => {
+      waterQuality.forEach((point) => {
         const color = getWaterQualityColor(point.quality);
         const marker = L.circleMarker([point.lat, point.lng], {
           radius: 9,
@@ -171,11 +185,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
     // Recycling Centers
     if (activeLayers.includes("recycling")) {
-      const data = selectedState
-        ? sampleRecyclingCenters.filter((s) => s.state === selectedState)
-        : sampleRecyclingCenters;
-
-      data.forEach((center) => {
+      recyclingCenters.forEach((center) => {
         const icon = L.divIcon({
           html: `<div class="icon-marker" style="background:#059669;width:28px;height:28px">${mapMarkerSvgs.recycle}</div>`,
           iconSize: [28, 28],
@@ -203,11 +213,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
     // Pollutant Companies
     if (activeLayers.includes("pollutants")) {
-      const data = selectedState
-        ? samplePollutantCompanies.filter((s) => s.state === selectedState)
-        : samplePollutantCompanies;
-
-      data.forEach((company) => {
+      pollutantCompanies.forEach((company) => {
         const icon = L.divIcon({
           html: `<div class="icon-marker" style="background:#dc2626;width:30px;height:30px">${mapMarkerSvgs.factory}</div>`,
           iconSize: [30, 30],
@@ -231,11 +237,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
     // Landfills
     if (activeLayers.includes("landfills")) {
-      const data = selectedState
-        ? sampleLandfills.filter((s) => s.state === selectedState)
-        : sampleLandfills;
-
-      data.forEach((landfill) => {
+      landfills.forEach((landfill) => {
         const typeColors: Record<string, string> = {
           relleno_sanitario: "#854d0e",
           tiradero_cielo_abierto: "#991b1b",
@@ -278,11 +280,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
     // Complaints
     if (activeLayers.includes("complaints")) {
-      const data = selectedState
-        ? sampleComplaints.filter((s) => s.state === selectedState)
-        : sampleComplaints;
-
-      data.forEach((complaint) => {
+      complaints.forEach((complaint) => {
         const resourceSvgs: Record<string, string> = {
           agua: mapMarkerSvgs.droplet,
           aire: mapMarkerSvgs.wind,
@@ -318,7 +316,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
         ));
       });
     }
-  }, [map, L, activeLayers, selectedState]);
+  }, [map, L, activeLayers, airQuality, waterQuality, recyclingCenters, pollutantCompanies, landfills, complaints]);
 
   return (
     <>

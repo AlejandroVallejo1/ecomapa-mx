@@ -1,10 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { MapLayer } from "@/types";
+import type {
+  MapLayer,
+  AirQualityStation,
+  WaterQualityPoint,
+  RecyclingCenter,
+  PollutantCompany,
+  Landfill,
+  EnvironmentalComplaint,
+} from "@/types";
+import type { MapViewHandle } from "@/components/MapView";
 import Sidebar from "@/components/Sidebar";
 import StatsBar from "@/components/StatsBar";
+import SearchBar from "@/components/SearchBar";
+import DataSourceBanner from "@/components/DataSourceBanner";
+import { useLayerData } from "@/hooks/useLayerData";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -33,11 +45,29 @@ export default function Home() {
   const [activeLayers, setActiveLayers] = useState<MapLayer[]>(["air-quality"]);
   const [selectedState, setSelectedState] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mapHandle, setMapHandle] = useState<MapViewHandle | null>(null);
+
+  const { getLayerData, anyLoading, anyFallback } = useLayerData(activeLayers, selectedState);
+
+  const airQuality = getLayerData<AirQualityStation>("air-quality").data;
+  const waterQuality = getLayerData<WaterQualityPoint>("water-quality").data;
+  const recyclingCenters = getLayerData<RecyclingCenter>("recycling").data;
+  const pollutantCompanies = getLayerData<PollutantCompany>("pollutants").data;
+  const landfillsData = getLayerData<Landfill>("landfills").data;
+  const complaintsData = getLayerData<EnvironmentalComplaint>("complaints").data;
 
   const handleToggleLayer = (layer: MapLayer) => {
     setActiveLayers((prev) =>
       prev.includes(layer) ? prev.filter((l) => l !== layer) : [...prev, layer]
     );
+  };
+
+  const handleMapReady = useCallback((handle: MapViewHandle) => {
+    setMapHandle(handle);
+  }, []);
+
+  const handleSearchSelect = (location: { lat: number; lng: number; name: string }) => {
+    mapHandle?.flyTo(location.lat, location.lng, 12);
   };
 
   return (
@@ -71,9 +101,26 @@ export default function Home() {
           />
         </div>
 
-        {/* Map */}
-        <div className="flex-1">
-          <MapView activeLayers={activeLayers} selectedState={selectedState} />
+        {/* Map area */}
+        <div className="flex-1 relative">
+          {/* Search bar overlay */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 w-72">
+            <SearchBar onSelect={handleSearchSelect} />
+          </div>
+
+          {/* Data source status */}
+          <DataSourceBanner isLoading={anyLoading} isFallback={anyFallback} />
+
+          <MapView
+            activeLayers={activeLayers}
+            airQuality={airQuality}
+            waterQuality={waterQuality}
+            recyclingCenters={recyclingCenters}
+            pollutantCompanies={pollutantCompanies}
+            landfills={landfillsData}
+            complaints={complaintsData}
+            onMapReady={handleMapReady}
+          />
         </div>
       </div>
     </div>
