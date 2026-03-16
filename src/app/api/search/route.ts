@@ -25,6 +25,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  if (query.trim().length > 200) {
+    return NextResponse.json(
+      { error: "Búsqueda demasiado larga (máximo 200 caracteres)" },
+      { status: 400 }
+    );
+  }
+
   try {
     const encodedQuery = encodeURIComponent(query.trim());
     const url = `https://nominatim.openstreetmap.org/search?q=${encodedQuery}&countrycodes=mx&format=json&limit=5`;
@@ -49,7 +56,11 @@ export async function GET(request: NextRequest) {
       lng: parseFloat(item.lon),
     }));
 
-    return NextResponse.json({ results });
+    return NextResponse.json({ results }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=604800, stale-while-revalidate=86400",
+      },
+    });
   } catch (error) {
     console.error("Geocoding search error:", error);
     return NextResponse.json(

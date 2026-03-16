@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import type {
   MapLayer,
   AirQualityStation,
@@ -28,25 +28,34 @@ interface MapViewProps {
   onMapReady?: (handle: MapViewHandle) => void;
 }
 
-// Popup HTML helper - dark glassmorphism style
+// Escape HTML to prevent XSS from external data sources
+function esc(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// Popup HTML helpers - dark glassmorphism style
 function popupHtml(content: string) {
   return `<div style="font-family:'Inter',system-ui,sans-serif;min-width:210px;font-size:13px;line-height:1.5">${content}</div>`;
 }
 
 function popupTitle(text: string, color?: string) {
-  return `<div style="font-weight:700;font-size:14px;margin-bottom:6px;${color ? `color:${color}` : "color:#EBE6E6"}">${text}</div>`;
+  return `<div style="font-weight:700;font-size:14px;margin-bottom:6px;${color ? `color:${color}` : "color:#EBE6E6"}">${esc(text)}</div>`;
 }
 
 function popupSubtext(text: string) {
-  return `<div style="font-size:11px;color:#94A3B8;margin-bottom:2px">${text}</div>`;
+  return `<div style="font-size:11px;color:#94A3B8;margin-bottom:2px">${esc(text)}</div>`;
 }
 
 function popupBadge(text: string, bg: string) {
-  return `<span style="display:inline-block;background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.05em">${text}</span>`;
+  return `<span style="display:inline-block;background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.05em">${esc(text)}</span>`;
 }
 
 function popupRow(label: string, value: string) {
-  return `<tr><td style="color:#94A3B8;padding:2px 0">${label}</td><td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:#EBE6E6;padding:2px 0">${value}</td></tr>`;
+  return `<tr><td style="color:#94A3B8;padding:2px 0">${esc(label)}</td><td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:#EBE6E6;padding:2px 0">${esc(value)}</td></tr>`;
 }
 
 function popupTable(rows: string) {
@@ -97,7 +106,7 @@ export default function MapView({
       attribution: '&copy; <a href="https://openstreetmap.org">OSM</a> &copy; <a href="https://carto.com">CARTO</a>',
       subdomains: "abcd",
       maxZoom: 20,
-      keepBuffer: 6,
+      keepBuffer: 3,
       updateWhenZooming: false,
       updateWhenIdle: true,
     }).addTo(mapInstance);
@@ -171,7 +180,7 @@ export default function MapView({
 
         marker.bindPopup(popupHtml(
           popupTitle(point.name) +
-          `<div style="color:#60A5FA;font-weight:600;font-size:12px;margin-bottom:6px">${point.river}</div>` +
+          `<div style="color:#60A5FA;font-weight:600;font-size:12px;margin-bottom:6px">${esc(point.river)}</div>` +
           popupBadge(qualityLabel[point.quality], color) +
           popupDivider() +
           popupTable(
@@ -195,15 +204,15 @@ export default function MapView({
         const marker = L.marker([center.lat, center.lng], { icon }).addTo(map);
 
         const materialsHtml = center.materials.map((m) =>
-          `<span style="display:inline-block;background:rgba(16,185,129,0.15);color:#6EE7B7;padding:2px 7px;border-radius:4px;font-size:10px;margin:1px;font-weight:500">${m}</span>`
+          `<span style="display:inline-block;background:rgba(16,185,129,0.15);color:#6EE7B7;padding:2px 7px;border-radius:4px;font-size:10px;margin:1px;font-weight:500">${esc(m)}</span>`
         ).join("");
 
         marker.bindPopup(popupHtml(
           popupTitle(center.name, "#6EE7B7") +
           popupSubtext(center.address) +
           popupSubtext(`${center.city}, ${center.state}`) +
-          (center.phone ? `<div style="font-size:12px;color:#CBD5E1;margin-top:6px"><span style="color:#64748B">Tel:</span> ${center.phone}</div>` : "") +
-          (center.schedule ? `<div style="font-size:12px;color:#CBD5E1"><span style="color:#64748B">Horario:</span> ${center.schedule}</div>` : "") +
+          (center.phone ? `<div style="font-size:12px;color:#CBD5E1;margin-top:6px"><span style="color:#64748B">Tel:</span> ${esc(center.phone)}</div>` : "") +
+          (center.schedule ? `<div style="font-size:12px;color:#CBD5E1"><span style="color:#64748B">Horario:</span> ${esc(center.schedule)}</div>` : "") +
           popupDivider() +
           `<div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Materiales</div>` +
           materialsHtml
@@ -224,7 +233,7 @@ export default function MapView({
 
         marker.bindPopup(popupHtml(
           popupTitle(company.name, "#FCA5A5") +
-          `<div style="font-size:11px;color:#94A3B8;margin-bottom:2px">${company.sector}</div>` +
+          `<div style="font-size:11px;color:#94A3B8;margin-bottom:2px">${esc(company.sector)}</div>` +
           popupSubtext(`${company.municipality}, ${company.state}`) +
           popupDivider() +
           `<div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Emisiones ${company.year}</div>` +
@@ -268,7 +277,7 @@ export default function MapView({
 
         marker.bindPopup(popupHtml(
           popupTitle(landfill.name) +
-          `<div style="font-size:12px;color:#94A3B8;margin-bottom:4px">${typeLabels[landfill.type]}</div>` +
+          `<div style="font-size:12px;color:#94A3B8;margin-bottom:4px">${esc(typeLabels[landfill.type])}</div>` +
           popupSubtext(`${landfill.municipality}, ${landfill.state}`) +
           `<div style="margin-top:8px">${popupBadge(statusText, statusColor)}</div>` +
           (landfill.capacity
@@ -307,11 +316,11 @@ export default function MapView({
 
         marker.bindPopup(popupHtml(
           popupTitle(complaint.type) +
-          `<div style="font-size:12px;color:#CBD5E1;margin:4px 0">${complaint.description}</div>` +
+          `<div style="font-size:12px;color:#CBD5E1;margin:4px 0">${esc(complaint.description)}</div>` +
           popupSubtext(`${complaint.municipality}, ${complaint.state}`) +
           `<div style="display:flex;align-items:center;gap:8px;margin-top:8px">
             ${popupBadge(statusText, statusColor)}
-            <span style="font-size:11px;color:#64748B;font-family:'JetBrains Mono',monospace">${complaint.date}</span>
+            <span style="font-size:11px;color:#64748B;font-family:'JetBrains Mono',monospace">${esc(complaint.date)}</span>
           </div>`
         ));
       });

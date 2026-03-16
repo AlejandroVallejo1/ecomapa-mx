@@ -132,5 +132,9 @@ export async function GET(request: NextRequest) {
     },
   };
 
-  return NextResponse.json(response);
+  return NextResponse.json(response, {
+    headers: {
+      "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=600",
+    },
+  });
 }

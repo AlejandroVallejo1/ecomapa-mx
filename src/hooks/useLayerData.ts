@@ -21,22 +21,21 @@ interface LayerState<T> {
 }
 
 export function useLayerData(activeLayers: MapLayer[], selectedState: string) {
-  // Store data per layer
   const [layerStates, setLayerStates] = useState<Record<string, LayerState<unknown>>>({});
   const abortControllers = useRef<Record<string, AbortController>>({});
+  const fetchedKeys = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    // For each active layer, fetch if not already loaded
     for (const layer of activeLayers) {
       const endpoint = LAYER_ENDPOINTS[layer];
       const cacheKey = `${layer}:${selectedState}`;
 
-      // Skip if already loaded for this state
-      if (layerStates[cacheKey]?.data.length > 0 && !layerStates[cacheKey]?.loading) {
+      // Skip if already fetched for this key
+      if (fetchedKeys.current.has(cacheKey)) {
         continue;
       }
 
-      // Abort previous request for this layer
+      // Abort previous request for this specific layer only
       abortControllers.current[layer]?.abort();
       const controller = new AbortController();
       abortControllers.current[layer] = controller;
@@ -52,8 +51,12 @@ export function useLayerData(activeLayers: MapLayer[], selectedState: string) {
       const url = `${endpoint}?${params}`;
 
       fetch(url, { signal: controller.signal })
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then(json => {
+          fetchedKeys.current.add(cacheKey);
           setLayerStates(prev => ({
             ...prev,
             [cacheKey]: {
@@ -73,14 +76,21 @@ export function useLayerData(activeLayers: MapLayer[], selectedState: string) {
           }));
         });
     }
+    // No cleanup that aborts all — only abort per-layer on new request above
+  }, [activeLayers, selectedState]);
 
+  // Clear fetched cache when state filter changes
+  useEffect(() => {
+    fetchedKeys.current.clear();
+  }, [selectedState]);
+
+  // Cleanup on unmount only
+  useEffect(() => {
     return () => {
-      // Cleanup: abort all pending on unmount
       Object.values(abortControllers.current).forEach(c => c.abort());
     };
-  }, [activeLayers, selectedState]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Helper to get data for a specific layer
   function getLayerData<T>(layer: MapLayer): LayerState<T> {
     const cacheKey = `${layer}:${selectedState}`;
     return (layerStates[cacheKey] as LayerState<T>) || { data: [], loading: false, error: null, source: "", fallback: false };
