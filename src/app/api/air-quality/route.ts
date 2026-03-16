@@ -5,9 +5,11 @@ import type { AirQualityStation } from "@/types";
 interface AqicnStation {
   uid: number;
   aqi: string;
+  lat: number;
+  lon: number;
   station: {
     name: string;
-    geo: [number, number];
+    time: string;
   };
 }
 
@@ -32,10 +34,10 @@ function getAqiCategory(aqi: number) {
 
 function parseStationLocation(name: string): { city: string; state: string } {
   // AQICN station names for Mexico often look like:
-  // "Pedregal, Mexico City, Mexico" or just "Monterrey, Mexico"
+  // "Velódromo, Puebla, Mexico" or "Centro, CHIH1, Chihuahua -Estatal, Mexico"
   const parts = name.split(",").map((s) => s.trim());
   if (parts.length >= 3) {
-    return { city: parts[1], state: parts[1] };
+    return { city: parts[0], state: parts[parts.length - 2] };
   }
   if (parts.length === 2) {
     return { city: parts[0], state: parts[0] };
@@ -69,9 +71,19 @@ async function fetchLiveStations(): Promise<AirQualityStation[]> {
   const stations: AirQualityStation[] = [];
 
   for (const raw of json.data as AqicnStation[]) {
-    // Skip stations with no valid AQI
+    // Skip stations with no valid AQI or coordinates
     const aqiNum = parseInt(raw.aqi, 10);
     if (isNaN(aqiNum) || raw.aqi === "-") continue;
+    if (!raw.lat || !raw.lon) continue;
+
+    // Filter to Mexico only (lat 14.5-33, lon -118.5 to -86.5)
+    // The bounding box also catches US border stations, filter by name
+    const nameLower = raw.station.name.toLowerCase();
+    const isMexico = nameLower.includes("mexico") || nameLower.includes("méxico")
+      || nameLower.includes("estatal") || nameLower.includes("sinaica")
+      || (raw.lat >= 14.5 && raw.lat <= 32.72 && raw.lon >= -117.5 && raw.lon <= -86.5);
+
+    if (!isMexico) continue;
 
     const { city, state } = parseStationLocation(raw.station.name);
 
@@ -80,8 +92,8 @@ async function fetchLiveStations(): Promise<AirQualityStation[]> {
       name: raw.station.name,
       city,
       state,
-      lat: raw.station.geo[0],
-      lng: raw.station.geo[1],
+      lat: raw.lat,
+      lng: raw.lon,
       aqi: aqiNum,
       category: getAqiCategory(aqiNum),
       pm25: 0,
@@ -91,7 +103,7 @@ async function fetchLiveStations(): Promise<AirQualityStation[]> {
       so2: 0,
       co: 0,
       source: "aqicn",
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: raw.station.time || new Date().toISOString(),
     });
   }
 
