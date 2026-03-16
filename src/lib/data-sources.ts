@@ -1,10 +1,22 @@
 // Mexican Government & International API endpoints for environmental data
 
+import type { AirQualityStation } from "@/types";
+import { fetchWithTimeout } from "@/lib/api-helpers";
+import {
+  transformOpenAQLocations,
+  transformAQICNStations,
+  mergeAirQualitySources,
+} from "@/lib/transformers";
+
+// ── Base URLs ─────────────────────────────────────────────────────────
+
 const OPENAQ_BASE = "https://api.openaq.org/v3";
 const DATOS_GOB_BASE = "https://api.datos.gob.mx/v1";
 const AQICN_BASE = "https://api.waqi.info";
 
-// OpenAQ - Air quality data (aggregates SINAICA, RAMA, SIMA)
+// ── OpenAQ ────────────────────────────────────────────────────────────
+
+/** Raw OpenAQ locations request (kept for backward compat with API route) */
 export async function fetchAirQuality(lat?: number, lng?: number) {
   const params = new URLSearchParams({
     countries_id: "129", // Mexico
@@ -27,7 +39,7 @@ export async function fetchAirQuality(lat?: number, lng?: number) {
   return res.json();
 }
 
-// OpenAQ - Latest measurements for a location
+/** Raw latest measurements for a single location */
 export async function fetchLatestMeasurements(locationId: number) {
   const res = await fetch(
     `${OPENAQ_BASE}/locations/${locationId}/latest`,
@@ -43,7 +55,32 @@ export async function fetchLatestMeasurements(locationId: number) {
   return res.json();
 }
 
-// AQICN - Real-time air quality index with map feed
+/**
+ * Fetch OpenAQ stations and transform into canonical AirQualityStation[].
+ * Uses 30-minute Next.js cache.
+ */
+export async function fetchOpenAQStations(): Promise<AirQualityStation[]> {
+  const params = new URLSearchParams({
+    countries_id: "129",
+    limit: "200",
+  });
+
+  const res = await fetchWithTimeout(
+    `${OPENAQ_BASE}/locations?${params}`,
+    {
+      headers: { "X-API-Key": process.env.OPENAQ_API_KEY || "" },
+      next: { revalidate: 1800 },
+      timeoutMs: 10000,
+    } as RequestInit & { timeoutMs?: number }
+  );
+
+  const json = await res.json();
+  return transformOpenAQLocations(json);
+}
+
+// ── AQICN ─────────────────────────────────────────────────────────────
+
+/** Raw AQICN map bounds request (kept for backward compat) */
 export async function fetchAqicnMapData(
   latMin: number,
   lngMin: number,
@@ -60,7 +97,48 @@ export async function fetchAqicnMapData(
   return res.json();
 }
 
-// datos.gob.mx CKAN API - Search environmental datasets
+/**
+ * Fetch AQICN stations for all of Mexico and transform.
+ * Uses 30-minute cache.
+ */
+export async function fetchAQICNStations(): Promise<AirQualityStation[]> {
+  const token = process.env.AQICN_API_KEY || "";
+  // Mexico bounding box: lat 14.5-33.0, lng -118.5 to -86.5
+  const res = await fetchWithTimeout(
+    `${AQICN_BASE}/map/bounds/?latlng=14.5,-118.5,33.0,-86.5&token=${token}`,
+    {
+      next: { revalidate: 1800 },
+      timeoutMs: 10000,
+    } as RequestInit & { timeoutMs?: number }
+  );
+
+  const json = await res.json();
+  return transformAQICNStations(json);
+}
+
+// ── Merged live air quality ───────────────────────────────────────────
+
+/**
+ * Fetch from both OpenAQ and AQICN in parallel, merge results.
+ * If one source fails the other still contributes.
+ */
+export async function fetchLiveAirQuality(): Promise<AirQualityStation[]> {
+  const [openaqResult, aqicnResult] = await Promise.allSettled([
+    fetchOpenAQStations(),
+    fetchAQICNStations(),
+  ]);
+
+  const openaq =
+    openaqResult.status === "fulfilled" ? openaqResult.value : [];
+  const aqicn =
+    aqicnResult.status === "fulfilled" ? aqicnResult.value : [];
+
+  return mergeAirQualitySources(openaq, aqicn);
+}
+
+// ── datos.gob.mx ──────────────────────────────────────────────────────
+
+/** Generic datos.gob.mx CKAN fetch */
 export async function fetchDatosGob(query: string, limit = 50) {
   const res = await fetch(
     `${DATOS_GOB_BASE}/${query}?pageSize=${limit}`,
@@ -71,22 +149,23 @@ export async function fetchDatosGob(query: string, limit = 50) {
   return res.json();
 }
 
-// CONAGUA water quality data
+/** CONAGUA water quality data */
 export async function fetchWaterQuality() {
   return fetchDatosGob("conagua.gob.mx-RENAMECA");
 }
 
-// RETC - Pollutant companies registry
+/** RETC - Pollutant companies registry */
 export async function fetchRetcData() {
   return fetchDatosGob("semarnat.gob.mx-RETC");
 }
 
-// PROFEPA - Environmental complaints
+/** PROFEPA - Environmental complaints */
 export async function fetchComplaintsData() {
   return fetchDatosGob("profepa.gob.mx-denuncias");
 }
 
-// AQI color mapping
+// ── Color / label helpers (used by MapView & Sidebar) ─────────────────
+
 export function getAqiColor(aqi: number): string {
   if (aqi <= 50) return "#00e400"; // Buena
   if (aqi <= 100) return "#ffff00"; // Aceptable
@@ -120,7 +199,8 @@ export function getWaterQualityColor(quality: string): string {
   }
 }
 
-// Mexican states list for filters
+// ── Mexican states list for filters ───────────────────────────────────
+
 export const MEXICAN_STATES = [
   "Aguascalientes", "Baja California", "Baja California Sur", "Campeche",
   "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima",
