@@ -8,6 +8,14 @@ import {
   sampleLandfills,
   sampleComplaints,
 } from "@/lib/sample-data";
+import {
+  WindIcon,
+  DropletIcon,
+  RecycleIcon,
+  FactoryIcon,
+  TrashBinIcon,
+  AlertTriangleIcon,
+} from "@/components/Icons";
 
 export default function StatsBar() {
   const avgAqi = Math.round(
@@ -22,7 +30,7 @@ export default function StatsBar() {
     <div className="bg-white border-b border-gray-200 px-6 py-3">
       <div className="flex items-center gap-8 text-sm overflow-x-auto">
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-blue-500 font-bold text-lg">💨</span>
+          <WindIcon className="text-blue-500" size={20} />
           <div>
             <div className="text-gray-500 text-xs">AQI Promedio</div>
             <div className="font-bold text-gray-900">{avgAqi}</div>
@@ -32,9 +40,9 @@ export default function StatsBar() {
         <div className="h-8 w-px bg-gray-200" />
 
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-cyan-500 font-bold text-lg">💧</span>
+          <DropletIcon className="text-cyan-500" size={20} />
           <div>
-            <div className="text-gray-500 text-xs">Ríos Contaminados</div>
+            <div className="text-gray-500 text-xs">Rios Contaminados</div>
             <div className="font-bold text-red-600">
               {contaminatedRivers}/{sampleWaterQuality.length}
             </div>
@@ -44,7 +52,7 @@ export default function StatsBar() {
         <div className="h-8 w-px bg-gray-200" />
 
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-emerald-500 font-bold text-lg">♻️</span>
+          <RecycleIcon className="text-emerald-500" size={20} />
           <div>
             <div className="text-gray-500 text-xs">Centros de Reciclaje</div>
             <div className="font-bold text-emerald-600">
@@ -56,7 +64,7 @@ export default function StatsBar() {
         <div className="h-8 w-px bg-gray-200" />
 
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-red-500 font-bold text-lg">🏭</span>
+          <FactoryIcon className="text-red-500" size={20} />
           <div>
             <div className="text-gray-500 text-xs">Empresas RETC</div>
             <div className="font-bold text-red-600">
@@ -68,7 +76,7 @@ export default function StatsBar() {
         <div className="h-8 w-px bg-gray-200" />
 
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-amber-700 font-bold text-lg">🗑️</span>
+          <TrashBinIcon className="text-amber-700" size={20} />
           <div>
             <div className="text-gray-500 text-xs">Rellenos/Tiraderos</div>
             <div className="font-bold text-gray-900">{sampleLandfills.length}</div>
@@ -78,7 +86,7 @@ export default function StatsBar() {
         <div className="h-8 w-px bg-gray-200" />
 
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-yellow-500 font-bold text-lg">⚠️</span>
+          <AlertTriangleIcon className="text-yellow-500" size={20} />
           <div>
             <div className="text-gray-500 text-xs">Denuncias</div>
             <div className="font-bold text-yellow-600">{sampleComplaints.length}</div>

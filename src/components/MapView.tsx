@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { MapLayer } from "@/types";
 import { getAqiColor, getWaterQualityColor } from "@/lib/data-sources";
+import { mapMarkerSvgs } from "@/components/Icons";
 import {
   sampleAirQuality,
   sampleWaterQuality,
@@ -22,7 +23,6 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
   const [L, setL] = useState<typeof import("leaflet") | null>(null);
 
   useEffect(() => {
-    // Dynamic import to avoid SSR issues
     import("leaflet").then((leaflet) => {
       setL(leaflet.default || leaflet);
     });
@@ -32,7 +32,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
     if (!L || map) return;
 
     const mapInstance = L.map("map", {
-      center: [23.6345, -102.5528], // Center of Mexico
+      center: [23.6345, -102.5528],
       zoom: 5,
       zoomControl: true,
     });
@@ -53,7 +53,6 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
   useEffect(() => {
     if (!map || !L) return;
 
-    // Clear existing markers
     map.eachLayer((layer) => {
       if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
         map.removeLayer(layer);
@@ -76,17 +75,17 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
         }).addTo(map);
 
         marker.bindPopup(`
-          <div style="min-width:200px">
-            <h3 style="font-weight:bold;margin:0 0 8px">${station.name}</h3>
-            <p style="margin:2px 0;color:#666">${station.city}, ${station.state}</p>
+          <div style="min-width:200px;font-family:system-ui,sans-serif">
+            <h3 style="font-weight:700;margin:0 0 8px;font-size:14px">${station.name}</h3>
+            <p style="margin:2px 0;color:#666;font-size:12px">${station.city}, ${station.state}</p>
             <div style="background:${getAqiColor(station.aqi)};color:${station.aqi > 100 ? "#fff" : "#000"};padding:8px;border-radius:6px;text-align:center;margin:8px 0">
               <div style="font-size:24px;font-weight:bold">AQI ${station.aqi}</div>
             </div>
             <table style="width:100%;font-size:12px">
-              <tr><td>PM2.5</td><td style="text-align:right">${station.pm25} µg/m³</td></tr>
-              <tr><td>PM10</td><td style="text-align:right">${station.pm10} µg/m³</td></tr>
-              <tr><td>O₃</td><td style="text-align:right">${station.o3} ppb</td></tr>
-              <tr><td>NO₂</td><td style="text-align:right">${station.no2} ppb</td></tr>
+              <tr><td>PM2.5</td><td style="text-align:right">${station.pm25} ug/m3</td></tr>
+              <tr><td>PM10</td><td style="text-align:right">${station.pm10} ug/m3</td></tr>
+              <tr><td>O3</td><td style="text-align:right">${station.o3} ppb</td></tr>
+              <tr><td>NO2</td><td style="text-align:right">${station.no2} ppb</td></tr>
             </table>
           </div>
         `);
@@ -116,10 +115,10 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
         };
 
         marker.bindPopup(`
-          <div style="min-width:200px">
-            <h3 style="font-weight:bold;margin:0 0 4px">${point.name}</h3>
-            <p style="margin:2px 0;color:#1e40af;font-weight:600">${point.river}</p>
-            <div style="background:${getWaterQualityColor(point.quality)};color:#fff;padding:6px;border-radius:6px;text-align:center;margin:8px 0">
+          <div style="min-width:200px;font-family:system-ui,sans-serif">
+            <h3 style="font-weight:700;margin:0 0 4px;font-size:14px">${point.name}</h3>
+            <p style="margin:2px 0;color:#1e40af;font-weight:600;font-size:13px">${point.river}</p>
+            <div style="background:${getWaterQualityColor(point.quality)};color:#fff;padding:6px;border-radius:6px;text-align:center;margin:8px 0;font-weight:600;font-size:13px">
               ${qualityLabel[point.quality]}
             </div>
             <table style="width:100%;font-size:12px">
@@ -140,7 +139,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
       data.forEach((center) => {
         const icon = L.divIcon({
-          html: `<div style="background:#059669;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)">♻</div>`,
+          html: `<div style="background:#059669;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${mapMarkerSvgs.recycle}</div>`,
           iconSize: [28, 28],
           className: "",
         });
@@ -148,14 +147,14 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
         const marker = L.marker([center.lat, center.lng], { icon }).addTo(map);
 
         marker.bindPopup(`
-          <div style="min-width:220px">
-            <h3 style="font-weight:bold;margin:0 0 8px;color:#059669">${center.name}</h3>
+          <div style="min-width:220px;font-family:system-ui,sans-serif">
+            <h3 style="font-weight:700;margin:0 0 8px;color:#059669;font-size:14px">${center.name}</h3>
             <p style="margin:2px 0;font-size:13px">${center.address}</p>
-            <p style="margin:2px 0;color:#666">${center.city}, ${center.state}</p>
-            ${center.phone ? `<p style="margin:4px 0">📞 ${center.phone}</p>` : ""}
-            ${center.schedule ? `<p style="margin:2px 0">🕐 ${center.schedule}</p>` : ""}
+            <p style="margin:2px 0;color:#666;font-size:12px">${center.city}, ${center.state}</p>
+            ${center.phone ? `<p style="margin:4px 0;font-size:12px;color:#374151"><span style="font-weight:600">Tel:</span> ${center.phone}</p>` : ""}
+            ${center.schedule ? `<p style="margin:2px 0;font-size:12px;color:#374151"><span style="font-weight:600">Horario:</span> ${center.schedule}</p>` : ""}
             <div style="margin-top:8px">
-              <strong style="font-size:12px">Materiales:</strong><br/>
+              <strong style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em">Materiales</strong><br/>
               ${center.materials.map((m) => `<span style="background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:4px;font-size:11px;margin:2px;display:inline-block">${m}</span>`).join("")}
             </div>
           </div>
@@ -171,7 +170,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
 
       data.forEach((company) => {
         const icon = L.divIcon({
-          html: `<div style="background:#dc2626;color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)">🏭</div>`,
+          html: `<div style="background:#dc2626;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${mapMarkerSvgs.factory}</div>`,
           iconSize: [30, 30],
           className: "",
         });
@@ -179,12 +178,12 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
         const marker = L.marker([company.lat, company.lng], { icon }).addTo(map);
 
         marker.bindPopup(`
-          <div style="min-width:240px">
-            <h3 style="font-weight:bold;margin:0 0 4px;color:#dc2626">${company.name}</h3>
+          <div style="min-width:240px;font-family:system-ui,sans-serif">
+            <h3 style="font-weight:700;margin:0 0 4px;color:#dc2626;font-size:14px">${company.name}</h3>
             <p style="margin:2px 0;font-size:12px;color:#666">${company.sector}</p>
             <p style="margin:2px 0;font-size:13px">${company.municipality}, ${company.state}</p>
             <div style="margin-top:8px">
-              <strong style="font-size:12px">Emisiones (${company.year}):</strong>
+              <strong style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em">Emisiones (${company.year})</strong>
               <table style="width:100%;font-size:12px;margin-top:4px">
                 ${company.emissions.map((e) => `<tr><td>${e.substance}</td><td style="text-align:right;font-weight:600">${e.amount.toLocaleString()} ${e.unit}</td></tr>`).join("")}
               </table>
@@ -208,7 +207,7 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
         };
 
         const icon = L.divIcon({
-          html: `<div style="background:${typeColors[landfill.type] || "#666"};color:white;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)">🗑</div>`,
+          html: `<div style="background:${typeColors[landfill.type] || "#666"};border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${mapMarkerSvgs.trash}</div>`,
           iconSize: [28, 28],
           className: "",
         });
@@ -221,19 +220,21 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
           sitio_controlado: "Sitio Controlado",
         };
 
-        const statusLabels: Record<string, string> = {
-          activo: "🟢 Activo",
-          clausurado: "🔴 Clausurado",
-          en_proceso: "🟡 En proceso",
+        const statusLabels: Record<string, [string, string]> = {
+          activo: ["Activo", "#16a34a"],
+          clausurado: ["Clausurado", "#dc2626"],
+          en_proceso: ["En proceso", "#ca8a04"],
         };
 
+        const [statusText, statusColor] = statusLabels[landfill.status] || ["Desconocido", "#6b7280"];
+
         marker.bindPopup(`
-          <div style="min-width:200px">
-            <h3 style="font-weight:bold;margin:0 0 8px">${landfill.name}</h3>
-            <p style="margin:2px 0"><strong>Tipo:</strong> ${typeLabels[landfill.type]}</p>
-            <p style="margin:2px 0"><strong>Estado:</strong> ${statusLabels[landfill.status]}</p>
-            <p style="margin:2px 0">${landfill.municipality}, ${landfill.state}</p>
-            ${landfill.capacity ? `<p style="margin:4px 0"><strong>Capacidad:</strong> ${(landfill.capacity / 1000000).toFixed(1)}M ton</p>` : ""}
+          <div style="min-width:200px;font-family:system-ui,sans-serif">
+            <h3 style="font-weight:700;margin:0 0 8px;font-size:14px">${landfill.name}</h3>
+            <p style="margin:2px 0;font-size:12px"><strong>Tipo:</strong> ${typeLabels[landfill.type]}</p>
+            <p style="margin:2px 0;font-size:12px"><strong>Estado:</strong> <span style="color:${statusColor};font-weight:600">${statusText}</span></p>
+            <p style="margin:2px 0;font-size:12px;color:#666">${landfill.municipality}, ${landfill.state}</p>
+            ${landfill.capacity ? `<p style="margin:4px 0;font-size:12px"><strong>Capacidad:</strong> ${(landfill.capacity / 1000000).toFixed(1)}M ton</p>` : ""}
           </div>
         `);
       });
@@ -246,35 +247,37 @@ export default function MapView({ activeLayers, selectedState }: MapViewProps) {
         : sampleComplaints;
 
       data.forEach((complaint) => {
-        const resourceIcons: Record<string, string> = {
-          agua: "💧",
-          aire: "💨",
-          suelo: "🏗",
-          forestal: "🌲",
-          fauna: "🦅",
+        const resourceSvgs: Record<string, string> = {
+          agua: mapMarkerSvgs.droplet,
+          aire: mapMarkerSvgs.wind,
+          suelo: mapMarkerSvgs.shovel,
+          forestal: mapMarkerSvgs.leaf,
+          fauna: mapMarkerSvgs.bird,
         };
 
         const icon = L.divIcon({
-          html: `<div style="background:#f59e0b;color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)">${resourceIcons[complaint.resource] || "⚠"}</div>`,
+          html: `<div style="background:#f59e0b;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${resourceSvgs[complaint.resource] || mapMarkerSvgs.alert}</div>`,
           iconSize: [26, 26],
           className: "",
         });
 
         const marker = L.marker([complaint.lat, complaint.lng], { icon }).addTo(map);
 
-        const statusColors: Record<string, string> = {
-          recibida: "#3b82f6",
-          en_proceso: "#f59e0b",
-          concluida: "#22c55e",
+        const statusStyles: Record<string, [string, string]> = {
+          recibida: ["RECIBIDA", "#3b82f6"],
+          en_proceso: ["EN PROCESO", "#f59e0b"],
+          concluida: ["CONCLUIDA", "#22c55e"],
         };
 
+        const [statusText, statusColor] = statusStyles[complaint.status] || ["DESCONOCIDO", "#6b7280"];
+
         marker.bindPopup(`
-          <div style="min-width:220px">
-            <h3 style="font-weight:bold;margin:0 0 4px">${complaint.type}</h3>
-            <p style="margin:4px 0;font-size:13px">${complaint.description}</p>
-            <p style="margin:2px 0;color:#666">${complaint.municipality}, ${complaint.state}</p>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <span style="background:${statusColors[complaint.status]};color:white;padding:3px 8px;border-radius:4px;font-size:11px">${complaint.status.replace("_", " ").toUpperCase()}</span>
+          <div style="min-width:220px;font-family:system-ui,sans-serif">
+            <h3 style="font-weight:700;margin:0 0 4px;font-size:14px">${complaint.type}</h3>
+            <p style="margin:4px 0;font-size:13px;color:#374151">${complaint.description}</p>
+            <p style="margin:2px 0;color:#666;font-size:12px">${complaint.municipality}, ${complaint.state}</p>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <span style="background:${statusColor};color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.05em">${statusText}</span>
               <span style="color:#666;font-size:12px">${complaint.date}</span>
             </div>
           </div>

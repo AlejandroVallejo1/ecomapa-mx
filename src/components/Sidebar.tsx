@@ -2,6 +2,15 @@
 
 import type { MapLayer } from "@/types";
 import { MEXICAN_STATES } from "@/lib/data-sources";
+import {
+  WindIcon,
+  DropletIcon,
+  RecycleIcon,
+  FactoryIcon,
+  TrashBinIcon,
+  AlertTriangleIcon,
+  LeafIcon,
+} from "@/components/Icons";
 
 interface SidebarProps {
   activeLayers: MapLayer[];
@@ -10,47 +19,53 @@ interface SidebarProps {
   onSelectState: (state: string) => void;
 }
 
-const LAYERS: { id: MapLayer; label: string; icon: string; color: string; description: string }[] = [
+const LAYERS: {
+  id: MapLayer;
+  label: string;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
+  iconColor: string;
+  description: string;
+}[] = [
   {
     id: "air-quality",
     label: "Calidad del Aire",
-    icon: "💨",
-    color: "bg-blue-500",
-    description: "Estaciones de monitoreo atmosférico (SINAICA/OpenAQ)",
+    icon: WindIcon,
+    iconColor: "text-blue-500",
+    description: "Estaciones de monitoreo atmosferico (SINAICA/OpenAQ)",
   },
   {
     id: "water-quality",
     label: "Calidad del Agua",
-    icon: "💧",
-    color: "bg-cyan-500",
-    description: "Puntos de monitoreo en ríos y cuerpos de agua (CONAGUA)",
+    icon: DropletIcon,
+    iconColor: "text-cyan-500",
+    description: "Puntos de monitoreo en rios y cuerpos de agua (CONAGUA)",
   },
   {
     id: "recycling",
     label: "Centros de Reciclaje",
-    icon: "♻️",
-    color: "bg-emerald-500",
+    icon: RecycleIcon,
+    iconColor: "text-emerald-500",
     description: "Centros de acopio y reciclaje",
   },
   {
     id: "pollutants",
     label: "Empresas Contaminantes",
-    icon: "🏭",
-    color: "bg-red-500",
+    icon: FactoryIcon,
+    iconColor: "text-red-500",
     description: "Registro de Emisiones y Transferencia de Contaminantes (RETC)",
   },
   {
     id: "landfills",
     label: "Rellenos y Tiraderos",
-    icon: "🗑️",
-    color: "bg-amber-700",
-    description: "Rellenos sanitarios y sitios de disposición final",
+    icon: TrashBinIcon,
+    iconColor: "text-amber-700",
+    description: "Rellenos sanitarios y sitios de disposicion final",
   },
   {
     id: "complaints",
     label: "Denuncias Ambientales",
-    icon: "⚠️",
-    color: "bg-yellow-500",
+    icon: AlertTriangleIcon,
+    iconColor: "text-yellow-500",
     description: "Denuncias ciudadanas ante PROFEPA",
   },
 ];
@@ -66,10 +81,11 @@ export default function Sidebar({
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-emerald-600 text-white">
         <h1 className="text-xl font-bold flex items-center gap-2">
-          🌎 EcoMapa MX
+          <LeafIcon className="text-emerald-200" size={24} />
+          EcoMapa MX
         </h1>
         <p className="text-emerald-100 text-sm mt-1">
-          Mapa ambiental de México
+          Mapa ambiental de Mexico
         </p>
       </div>
 
@@ -83,7 +99,7 @@ export default function Sidebar({
           onChange={(e) => onSelectState(e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
         >
-          <option value="">Toda la República</option>
+          <option value="">Toda la Republica</option>
           {MEXICAN_STATES.map((state) => (
             <option key={state} value={state}>
               {state}
@@ -100,6 +116,7 @@ export default function Sidebar({
         <div className="space-y-2">
           {LAYERS.map((layer) => {
             const isActive = activeLayers.includes(layer.id);
+            const IconComponent = layer.icon;
             return (
               <button
                 key={layer.id}
@@ -111,7 +128,9 @@ export default function Sidebar({
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">{layer.icon}</span>
+                  <div className={`flex-shrink-0 ${layer.iconColor}`}>
+                    <IconComponent size={22} />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm text-gray-900">
@@ -150,15 +169,15 @@ export default function Sidebar({
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full" style={{ background: "#ff7e00" }} />
-            <span>Dañina*</span>
+            <span>Danina*</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full" style={{ background: "#ff0000" }} />
-            <span>Dañina</span>
+            <span>Danina</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full" style={{ background: "#8f3f97" }} />
-            <span>Muy dañina</span>
+            <span>Muy danina</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full" style={{ background: "#7e0023" }} />
