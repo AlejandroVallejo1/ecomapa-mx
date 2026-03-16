@@ -26,72 +26,73 @@ export default function StatsBar() {
     (w) => w.quality === "contaminada" || w.quality === "fuertemente_contaminada"
   ).length;
 
+  const stats = [
+    {
+      icon: WindIcon,
+      iconColor: "text-blue-400",
+      label: "AQI Promedio",
+      value: String(avgAqi),
+      valueColor: avgAqi > 100 ? "text-red-400" : avgAqi > 50 ? "text-yellow-400" : "text-emerald-400",
+    },
+    {
+      icon: DropletIcon,
+      iconColor: "text-cyan-400",
+      label: "Rios Contaminados",
+      value: `${contaminatedRivers}/${sampleWaterQuality.length}`,
+      valueColor: "text-red-400",
+    },
+    {
+      icon: RecycleIcon,
+      iconColor: "text-emerald-400",
+      label: "Centros de Reciclaje",
+      value: String(sampleRecyclingCenters.length),
+      valueColor: "text-emerald-400",
+    },
+    {
+      icon: FactoryIcon,
+      iconColor: "text-red-400",
+      label: "Empresas RETC",
+      value: String(samplePollutantCompanies.length),
+      valueColor: "text-red-400",
+    },
+    {
+      icon: TrashBinIcon,
+      iconColor: "text-amber-400",
+      label: "Rellenos/Tiraderos",
+      value: String(sampleLandfills.length),
+      valueColor: "text-slate-200",
+    },
+    {
+      icon: AlertTriangleIcon,
+      iconColor: "text-yellow-400",
+      label: "Denuncias",
+      value: String(sampleComplaints.length),
+      valueColor: "text-yellow-400",
+    },
+  ];
+
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-3">
-      <div className="flex items-center gap-8 text-sm overflow-x-auto">
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <WindIcon className="text-blue-500" size={20} />
-          <div>
-            <div className="text-gray-500 text-xs">AQI Promedio</div>
-            <div className="font-bold text-gray-900">{avgAqi}</div>
-          </div>
-        </div>
-
-        <div className="h-8 w-px bg-gray-200" />
-
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <DropletIcon className="text-cyan-500" size={20} />
-          <div>
-            <div className="text-gray-500 text-xs">Rios Contaminados</div>
-            <div className="font-bold text-red-600">
-              {contaminatedRivers}/{sampleWaterQuality.length}
+    <div className="glass border-b border-white/[0.06] px-5 py-2.5">
+      <div className="flex items-center gap-6 text-sm overflow-x-auto">
+        {stats.map((stat, i) => {
+          const IconComponent = stat.icon;
+          return (
+            <div key={stat.label} className="flex items-center gap-6">
+              {i > 0 && <div className="h-6 w-px bg-white/[0.06]" />}
+              <div className="flex items-center gap-2.5 whitespace-nowrap">
+                <IconComponent className={stat.iconColor} size={16} />
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+                    {stat.label}
+                  </div>
+                  <div className={`font-mono-data text-sm font-bold ${stat.valueColor}`}>
+                    {stat.value}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="h-8 w-px bg-gray-200" />
-
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <RecycleIcon className="text-emerald-500" size={20} />
-          <div>
-            <div className="text-gray-500 text-xs">Centros de Reciclaje</div>
-            <div className="font-bold text-emerald-600">
-              {sampleRecyclingCenters.length}
-            </div>
-          </div>
-        </div>
-
-        <div className="h-8 w-px bg-gray-200" />
-
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <FactoryIcon className="text-red-500" size={20} />
-          <div>
-            <div className="text-gray-500 text-xs">Empresas RETC</div>
-            <div className="font-bold text-red-600">
-              {samplePollutantCompanies.length}
-            </div>
-          </div>
-        </div>
-
-        <div className="h-8 w-px bg-gray-200" />
-
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <TrashBinIcon className="text-amber-700" size={20} />
-          <div>
-            <div className="text-gray-500 text-xs">Rellenos/Tiraderos</div>
-            <div className="font-bold text-gray-900">{sampleLandfills.length}</div>
-          </div>
-        </div>
-
-        <div className="h-8 w-px bg-gray-200" />
-
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <AlertTriangleIcon className="text-yellow-500" size={20} />
-          <div>
-            <div className="text-gray-500 text-xs">Denuncias</div>
-            <div className="font-bold text-yellow-600">{sampleComplaints.length}</div>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
