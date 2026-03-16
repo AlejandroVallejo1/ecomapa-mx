@@ -1,0 +1,13 @@
+{
+  "feature": "Live API integration with OpenAQ air quality, datos.gob.mx RETC pollutant companies, CONAGUA water quality, and interactive dashboard with search/filter capabilities",
+  "status": "in_progress",
+  "stack": "nextjs-16/typescript/tailwind/leaflet",
+  "api_style": "rest",
+  "complexity": "complex",
+  "current_step": 1,
+  "current_phase": 1,
+  "completed_steps": [],
+  "files_created": [],
+  "started_at": "2026-03-15T12:00:00Z",
+  "last_updated": "2026-03-15T12:00:00Z"
+}

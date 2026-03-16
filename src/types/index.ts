@@ -1,3 +1,60 @@
+// ── Core geometry ──────────────────────────────────────────────────────
+
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
+// ── API response envelope ─────────────────────────────────────────────
+
+export type DataSource =
+  | "openaq"
+  | "aqicn"
+  | "datos.gob.mx"
+  | "cec-atlas"
+  | "sample";
+
+export interface ApiResponse<T> {
+  results: T[];
+  meta: {
+    source: DataSource;
+    fetchedAt: string;
+    totalResults: number;
+    fallback: boolean;
+  };
+}
+
+// ── Map & Filter types ────────────────────────────────────────────────
+
+export type MapLayer =
+  | "air-quality"
+  | "water-quality"
+  | "recycling"
+  | "pollutants"
+  | "landfills"
+  | "complaints";
+
+export interface MapFilter {
+  layers: MapLayer[];
+  state?: string;
+  searchQuery?: string;
+}
+
+// ── AQI category (Spanish labels) ────────────────────────────────────
+
+export type AqiCategory =
+  | "buena"
+  | "aceptable"
+  | "danina_sensibles"
+  | "danina"
+  | "muy_danina"
+  | "peligrosa";
+
+// ── Air Quality ───────────────────────────────────────────────────────
+// `pm25`, `pm10`, etc. are `number` in sample data but `number | null`
+// when coming from live APIs.  We use `number` to stay compatible with
+// sample-data.ts; the transformer fills 0 for missing values.
+
 export interface AirQualityStation {
   id: string;
   name: string;
@@ -6,14 +63,18 @@ export interface AirQualityStation {
   lat: number;
   lng: number;
   aqi: number;
+  category?: AqiCategory;
   pm25: number;
   pm10: number;
   o3: number;
   no2: number;
   so2: number;
   co: number;
+  source?: "openaq" | "aqicn";
   lastUpdated: string;
 }
+
+// ── Water Quality ─────────────────────────────────────────────────────
 
 export interface WaterQualityPoint {
   id: string;
@@ -29,6 +90,8 @@ export interface WaterQualityPoint {
   lastUpdated: string;
 }
 
+// ── Recycling Centers ─────────────────────────────────────────────────
+
 export interface RecyclingCenter {
   id: string;
   name: string;
@@ -41,6 +104,8 @@ export interface RecyclingCenter {
   phone?: string;
   schedule?: string;
 }
+
+// ── Pollutant Companies (RETC) ────────────────────────────────────────
 
 export interface PollutantCompany {
   id: string;
@@ -60,6 +125,8 @@ export interface PollutantCompany {
   year: number;
 }
 
+// ── Landfills ─────────────────────────────────────────────────────────
+
 export interface Landfill {
   id: string;
   name: string;
@@ -72,6 +139,8 @@ export interface Landfill {
   status: "activo" | "clausurado" | "en_proceso";
 }
 
+// ── Environmental Complaints ──────────────────────────────────────────
+
 export interface EnvironmentalComplaint {
   id: string;
   type: string;
@@ -83,18 +152,4 @@ export interface EnvironmentalComplaint {
   status: "recibida" | "en_proceso" | "concluida";
   date: string;
   resource: "agua" | "aire" | "suelo" | "forestal" | "fauna";
-}
-
-export type MapLayer =
-  | "air-quality"
-  | "water-quality"
-  | "recycling"
-  | "pollutants"
-  | "landfills"
-  | "complaints";
-
-export interface MapFilter {
-  layers: MapLayer[];
-  state?: string;
-  searchQuery?: string;
 }
