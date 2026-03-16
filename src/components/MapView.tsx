@@ -206,10 +206,11 @@ export default function MapView({
   }, []);
 
   // ── Helper: safely add/update a source + layers ─────────────────
+  // Note: these don't check mapReady — callers (the effects) do that.
   const upsertSource = useCallback(
     (sourceId: string, data: GeoJSON, options?: Partial<maplibregl.GeoJSONSourceSpecification>) => {
       const map = mapRef.current;
-      if (!map || !mapReady) return;
+      if (!map) return;
       const src = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
       if (src) {
         src.setData(data);
@@ -227,7 +228,7 @@ export default function MapView({
   const setLayerVisibility = useCallback(
     (layerIds: string[], visible: boolean) => {
       const map = mapRef.current;
-      if (!map || !mapReady) return;
+      if (!map) return;
       for (const id of layerIds) {
         if (map.getLayer(id)) {
           map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
